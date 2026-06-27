@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DailyEmail – inställningar</title>
+<style>
+  :root { --blue:#00A2B8; --blue-d:#025F7C; --ink:#222; --muted:#6b6b6b; --line:#e6e6e6; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f1f1ef; color:var(--ink);
+         font-family:'Helvetica Neue',Arial,sans-serif; }
+  .wrap { max-width:760px; margin:0 auto; padding:24px 16px 60px; }
+  .head { background:var(--blue); color:#fff; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+  .head h1 { margin:0; font-size:22px; }
+  .head p { margin:4px 0 0; font-size:13px; opacity:.92; }
+  .card { background:#fff; border-radius:10px; padding:20px 24px; margin-bottom:16px;
+          box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .card h2 { margin:0 0 6px; font-size:16px; }
+  .card .desc { margin:0 0 14px; font-size:13px; color:var(--muted); }
+  label.row { display:flex; align-items:center; gap:10px; margin:10px 0; font-size:15px; }
+  input[type=time], select { padding:8px 10px; font-size:15px; border:1px solid #ccc; border-radius:8px; }
+  .switch { position:relative; width:46px; height:26px; flex:0 0 auto; }
+  .switch input { opacity:0; width:0; height:0; }
+  .slider { position:absolute; inset:0; background:#ccc; border-radius:26px; transition:.2s; cursor:pointer; }
+  .slider:before { content:""; position:absolute; height:20px; width:20px; left:3px; top:3px;
+                   background:#fff; border-radius:50%; transition:.2s; }
+  .switch input:checked + .slider { background:var(--blue); }
+  .switch input:checked + .slider:before { transform:translateX(20px); }
+  .sub { margin-top:12px; padding-left:14px; border-left:3px solid var(--line); }
+  .sub.hidden, .hidden { display:none; }
+  .grid { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .opt { padding:7px 12px; font-size:13px; border:1px solid #ccc; border-radius:20px;
+         background:#fafafa; cursor:pointer; user-select:none; }
+  .opt.on { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .opt .cfg { font-size:10px; opacity:.7; }
+  .grouplabel { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+                color:var(--muted); margin:14px 0 2px; }
+  .radio { display:inline-flex; gap:14px; margin-top:6px; }
+  .bar { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line);
+         padding:12px 16px; display:flex; gap:12px; align-items:center; justify-content:center; }
+  button.save { background:var(--blue); color:#fff; border:0; border-radius:8px; padding:11px 22px;
+                font-size:15px; font-weight:600; cursor:pointer; }
+  button.ghost { background:#fff; border:1px solid #ccc; border-radius:8px; padding:11px 16px; cursor:pointer; }
+  #status { font-size:13px; color:var(--muted); }
+  .token { font-size:13px; }
+  .token input { width:100%; padding:9px 10px; border:1px solid #ccc; border-radius:8px; font-size:13px; }
+  code { background:#f0f2f1; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>DailyEmail – inställningar</h1>
+    <p>Ändringar sparas till <code>settings.json</code> och används vid nästa körning.</p>
+  </div>
+
+  <div class="card token">
+    <h2>GitHub-åtkomst</h2>
+    <p class="desc">Klistra in en fine-grained token (repo <code>Arvroc/DailyEmail</code>, behörighet
+      <b>Contents: Read and write</b>). Sparas endast i din webbläsare.</p>
+    <input id="token" type="password" placeholder="github_pat_…" autocomplete="off">
+  </div>
+
+  <div class="card">
+    <h2>Utskickstid</h2>
+    <p class="desc">När det dagliga mejlet ska skickas (Europe/Stockholm). Effektivt intervall ~07:00–10:00.</p>
+    <label class="row"><input id="send_time" type="time"> &nbsp;Skicka kl.</label>
+  </div>
+
+  <div class="card">
+    <h2>Veckosammanfattning</h2>
+    <p class="desc">Det sammanfattande veckomejlet (fredagar).</p>
+    <label class="row">
+      <span class="switch"><input id="weekly_summary" type="checkbox"><span class="slider"></span></span>
+      Skicka veckosammanfattning
+    </label>
+  </div>
+
+  <div class="card">
+    <h2>Regionanalys (nämnder)</h2>
+    <p class="desc">Agentisk analys av kommande nämndmöten och fattade beslut.</p>
+    <label class="row">
+      <span class="switch"><input id="region_enabled" type="checkbox"><span class="slider"></span></span>
+      Aktivera regionanalys
+    </label>
+    <div id="region_sub" class="sub">
+      <div class="radio">
+        <label><input type="radio" name="region_cadence" value="daily"> Dagligen</label>
+        <label><input type="radio" name="region_cadence" value="weekly"> Veckovis</label>
+      </div>
+      <div id="region_weekday_wrap" class="sub" style="border:0;padding-left:0;">
+        <label class="row">Veckodag:&nbsp;<select id="region_weekday"></select></label>
+      </div>
+      <div class="grouplabel">PTA:er att inkludera <span style="font-weight:400;text-transform:none">(✓ = analys finns)</span></div>
+      <div id="ptas" class="grid"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Årsrapport-analys <span style="font-size:12px;color:var(--muted)">(ännu ej byggd)</span></h2>
+    <p class="desc">Bevakning av årsredovisningar/finansiella resultat. Inställningarna sparas inför att funktionen byggs.</p>
+    <label class="row">
+      <span class="switch"><input id="reports_enabled" type="checkbox"><span class="slider"></span></span>
+      Aktivera årsrapport-analys
+    </label>
+    <div id="reports_sub" class="sub">
+      <div class="radio">
+        <label><input type="radio" name="reports_cadence" value="daily"> Dagligen</label>
+        <label><input type="radio" name="reports_cadence" value="weekly"> Veckovis</label>
+      </div>
+      <div id="reports_weekday_wrap" class="sub" style="border:0;padding-left:0;">
+        <label class="row">Veckodag:&nbsp;<select id="reports_weekday"></select></label>
+      </div>
+      <div id="companies"></div>
+    </div>
+  </div>
+</div>
+
+<div class="bar">
+  <button class="ghost" onclick="loadSettings()">Läs om</button>
+  <button class="save" onclick="saveSettings()">Spara</button>
+  <span id="status"></span>
+</div>
+
+<script>
+const REPO = { owner:"Arvroc", repo:"DailyEmail", path:"settings.json", branch:"main" };
+
+// All 21 PTAs; 'cfg' marks those that currently have an analyzer config entry.
+const PTAS = [
+  ["Skånetrafiken",1],["SL",1],["Västtrafik",1],["Dalatrafik",1],["UL",1],
+  ["Värmlandstrafik",1],["Östgötatrafiken",1],["Sörmlandstrafiken",1],
+  ["Hallandstrafiken",0],["Blekingetrafiken",0],["Gotland",0],["Kalmar Länstrafik",0],
+  ["Länstrafiken Kronoberg",0],["Jönköpings Länstrafik",0],["Länstrafiken Örebro",0],
+  ["VL",0],["X-trafik",0],["Din Tur",0],["Länstrafiken Jämtland",0],
+  ["Länstrafiken Västerbotten",0],["Länstrafiken Norrbotten",0],
+];
+const COMPANIES = {
+  "Multimodal (buss + tåg)": ["Keolis","Transdev","Vy"],
+  "Buss": ["Nobina","Connect Bus","Bergkvarabuss"],
+  "Tåg": ["SJ","VR","MTR","Snälltåget","Mälartåg"],
+};
+const DAYS = [["monday","Måndag"],["tuesday","Tisdag"],["wednesday","Onsdag"],
+  ["thursday","Torsdag"],["friday","Fredag"],["saturday","Lördag"],["sunday","Söndag"]];
+
+const $ = id => document.getElementById(id);
+const token = () => $("token").value.trim();
+function setStatus(msg, ok){ const s=$("status"); s.textContent=msg; s.style.color = ok? "#0a7d3e" : "#c0392b"; }
+
+// --- build dynamic controls ---
+for (const [val,label] of DAYS) {
+  for (const sel of ["region_weekday","reports_weekday"]) {
+    const o=document.createElement("option"); o.value=val; o.textContent=label; $(sel).appendChild(o);
+  }
+}
+function buildOptions(container, items){
+  container.innerHTML="";
+  for (const it of items){
+    const [name,cfg] = Array.isArray(it)? it : [it,1];
+    const d=document.createElement("div"); d.className="opt"; d.dataset.value=name;
+    d.innerHTML = name + (cfg? ' <span class="cfg">✓</span>':'');
+    d.onclick=()=>d.classList.toggle("on");
+    container.appendChild(d);
+  }
+}
+buildOptions($("ptas"), PTAS);
+const compWrap = $("companies");
+for (const [group,list] of Object.entries(COMPANIES)){
+  const h=document.createElement("div"); h.className="grouplabel"; h.textContent=group; compWrap.appendChild(h);
+  const g=document.createElement("div"); g.className="grid"; compWrap.appendChild(g);
+  buildOptions(g, list.map(n=>[n,1]));
+}
+function setSelected(container, values){
+  const set=new Set(values||[]);
+  container.querySelectorAll(".opt").forEach(o=>o.classList.toggle("on", set.has(o.dataset.value)));
+}
+function getSelected(container){
+  return [...container.querySelectorAll(".opt.on")].map(o=>o.dataset.value);
+}
+
+// --- conditional visibility ---
+function refresh(){
+  $("region_sub").classList.toggle("hidden", !$("region_enabled").checked);
+  $("reports_sub").classList.toggle("hidden", !$("reports_enabled").checked);
+  const rw = document.querySelector('input[name=region_cadence]:checked');
+  $("region_weekday_wrap").classList.toggle("hidden", !(rw && rw.value==="weekly"));
+  const pw = document.querySelector('input[name=reports_cadence]:checked');
+  $("reports_weekday_wrap").classList.toggle("hidden", !(pw && pw.value==="weekly"));
+}
+document.body.addEventListener("change", refresh);
+
+// --- base64 (UTF-8 safe) ---
+const b64enc = s => btoa(unescape(encodeURIComponent(s)));
+const b64dec = b => decodeURIComponent(escape(atob(b.replace(/\s/g,""))));
+
+function ghHeaders(){
+  return { "Accept":"application/vnd.github+json", "Authorization":"Bearer "+token(),
+           "X-GitHub-Api-Version":"2022-11-28" };
+}
+let currentSha = null;
+
+async function loadSettings(){
+  if(!token()){ setStatus("Ange en GitHub-token först.", false); return; }
+  setStatus("Läser…", true);
+  try {
+    const url = `https://api.github.com/repos/${REPO.owner}/${REPO.repo}/contents/${REPO.path}?ref=${REPO.branch}`;
+    const r = await fetch(url, {headers: ghHeaders()});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); currentSha = j.sha;
+    apply(JSON.parse(b64dec(j.content)));
+    localStorage.setItem("de_token", token());
+    setStatus("Inläst.", true);
+  } catch(e){ setStatus("Kunde inte läsa: "+e.message, false); }
+}
+
+function apply(s){
+  s = s||{};
+  $("send_time").value = s.send_time || "08:30";
+  $("weekly_summary").checked = s.weekly_summary_enabled !== false;
+  const r = s.region_analyzer||{};
+  $("region_enabled").checked = !!r.enabled;
+  (document.querySelector(`input[name=region_cadence][value="${r.cadence||'weekly'}"]`)||{}).checked = true;
+  $("region_weekday").value = r.weekday || "monday";
+  setSelected($("ptas"), r.ptas);
+  const p = s.reports_analyzer||{};
+  $("reports_enabled").checked = !!p.enabled;
+  (document.querySelector(`input[name=reports_cadence][value="${p.cadence||'weekly'}"]`)||{}).checked = true;
+  $("reports_weekday").value = p.weekday || "monday";
+  setSelected($("companies"), p.companies);
+  refresh();
+}
+
+function collect(){
+  return {
+    send_time: $("send_time").value || "08:30",
+    weekly_summary_enabled: $("weekly_summary").checked,
+    region_analyzer: {
+      enabled: $("region_enabled").checked,
+      cadence: (document.querySelector('input[name=region_cadence]:checked')||{}).value || "weekly",
+      weekday: $("region_weekday").value,
+      ptas: getSelected($("ptas")),
+    },
+    reports_analyzer: {
+      enabled: $("reports_enabled").checked,
+      cadence: (document.querySelector('input[name=reports_cadence]:checked')||{}).value || "weekly",
+      weekday: $("reports_weekday").value,
+      companies: getSelected($("companies")),
+    },
+  };
+}
+
+async function saveSettings(){
+  if(!token()){ setStatus("Ange en GitHub-token först.", false); return; }
+  setStatus("Sparar…", true);
+  try {
+    if(currentSha===null) await loadSettings();   // need the sha
+    const url = `https://api.github.com/repos/${REPO.owner}/${REPO.repo}/contents/${REPO.path}`;
+    const body = { message:"Update settings.json via web UI",
+                   content: b64enc(JSON.stringify(collect(), null, 2)+"\n"),
+                   sha: currentSha, branch: REPO.branch };
+    const r = await fetch(url, {method:"PUT", headers: ghHeaders(), body: JSON.stringify(body)});
+    if(!r.ok) throw new Error("HTTP "+r.status+" "+(await r.text()).slice(0,120));
+    currentSha = (await r.json()).content.sha;
+    localStorage.setItem("de_token", token());
+    setStatus("Sparat ✓ — gäller från nästa körning.", true);
+  } catch(e){ setStatus("Kunde inte spara: "+e.message, false); }
+}
+
+// init
+$("token").value = localStorage.getItem("de_token") || "";
+refresh();
+if(token()) loadSettings();
+</script>
+</body>
+</html>
